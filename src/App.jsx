@@ -31,6 +31,9 @@ import { useState, useEffect } from 'react';
  * @property {string} assignee
  * @property {string|null} dueDate     ISO 'YYYY-MM-DD'
  * @property {string} createdDate      ISO 'YYYY-MM-DD'
+ * @property {string} context          Curated prompt briefing
+ * @property {string|null} contextTool AI tool used for the task
+ * @property {string|null} contextUpdatedAt ISO timestamp
  */
 
 // The four columns of the board, in render order.
@@ -123,6 +126,9 @@ const EMPTY_TASK = {
   status: 'todo',
   assignee: TEAM[0],
   dueDate: '',
+  context: '',
+  contextTool: '',
+  contextUpdatedAt: null,
 };
 
 function getDueState(task) {
@@ -179,6 +185,9 @@ export default function App() {
       status: task.status,
       assignee: task.assignee,
       dueDate: task.dueDate ?? '',
+      context: task.context ?? '',
+      contextTool: task.contextTool ?? '',
+      contextUpdatedAt: task.contextUpdatedAt ?? null,
     });
   }
 
@@ -205,13 +214,27 @@ export default function App() {
           title: form.title.trim(),
           dueDate: form.dueDate || null,
           createdDate: new Date().toISOString().slice(0, 10),
+          context: form.context.trim(),
+          contextTool: form.contextTool || null,
+          contextUpdatedAt: form.context.trim() ? new Date().toISOString() : null,
         },
       ]);
     } else {
       setTasks((current) =>
         current.map((task) =>
           task.id === editing
-            ? { ...task, ...form, title: form.title.trim(), dueDate: form.dueDate || null }
+            ? {
+                ...task,
+                ...form,
+                title: form.title.trim(),
+                dueDate: form.dueDate || null,
+                context: form.context.trim(),
+                contextTool: form.contextTool || null,
+                contextUpdatedAt:
+                  task.context !== form.context.trim()
+                    ? (form.context.trim() ? new Date().toISOString() : null)
+                    : task.contextUpdatedAt,
+              }
             : task,
         ),
       );
@@ -403,6 +426,36 @@ export default function App() {
                 Description
                 <textarea name="description" value={form.description} onChange={updateForm} rows="3" className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30" />
               </label>
+
+              <div className="rounded-lg border border-violet-100 bg-violet-50/50 p-4">
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-slate-800">Prompt context</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Save the useful background and constraints that helped produce this task.</p>
+                </div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Context briefing
+                  <textarea
+                    name="context"
+                    value={form.context}
+                    onChange={updateForm}
+                    rows="4"
+                    placeholder="Background\nConstraints\nTried so far\nPick up from here"
+                    className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30"
+                  />
+                </label>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <label className="block text-sm font-medium text-slate-700">
+                    AI tool
+                    <select name="contextTool" value={form.contextTool} onChange={updateForm} className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm sm:w-44">
+                      <option value="">Select tool</option>
+                      {['Claude', 'ChatGPT', 'Cursor', 'Lovable', 'Replit', 'Other'].map((tool) => <option key={tool} value={tool}>{tool}</option>)}
+                    </select>
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    {form.contextUpdatedAt ? `Last updated ${new Date(form.contextUpdatedAt).toLocaleString()}` : 'No context saved yet.'}
+                  </p>
+                </div>
+              </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-medium text-slate-700">
