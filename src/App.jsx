@@ -46,6 +46,49 @@ export const STAGES = [
 // They become the only valid values for `Task.assignee`.
 export const TEAM = ['Teammate A', 'Teammate B', 'Teammate C'];
 
+const SEED_TASKS = [
+  {
+    id: 'task-1',
+    title: 'Define the first-time user flow',
+    description: 'Map the steps from creating a project to recording a useful prompt.',
+    type: 'feature',
+    status: 'todo',
+    assignee: TEAM[0],
+    dueDate: '2026-10-24',
+    createdDate: '2026-10-20',
+  },
+  {
+    id: 'task-2',
+    title: 'Build the Kanban board layout',
+    description: 'Create the four board columns and display tasks in their matching status.',
+    type: 'feature',
+    status: 'in-progress',
+    assignee: TEAM[1],
+    dueDate: '2026-10-22',
+    createdDate: '2026-10-20',
+  },
+  {
+    id: 'task-3',
+    title: 'Check empty-column behaviour',
+    description: 'Make sure a column remains clear and understandable when it contains no tasks.',
+    type: 'bug',
+    status: 'review',
+    assignee: TEAM[2],
+    dueDate: '2026-10-23',
+    createdDate: '2026-10-20',
+  },
+  {
+    id: 'task-4',
+    title: 'Prepare the prompt context template',
+    description: 'Draft the structure that will later be used for prompt and AI-result notes.',
+    type: 'feature',
+    status: 'done',
+    assignee: TEAM[0],
+    dueDate: null,
+    createdDate: '2026-10-19',
+  },
+];
+
 /**
  * A tiny localStorage hook — survives reloads, no library needed.
  *
@@ -74,8 +117,7 @@ export function useLocalStorage(key, initialValue) {
 }
 
 export default function App() {
-  // TODO M4 data-model:
-  //   const [tasks, setTasks] = useLocalStorage('vibetracker.tasks', [/* 3-4 seed tasks */]);
+  const [tasks] = useLocalStorage('vibetracker.tasks', SEED_TASKS);
   //
   // TODO M5 crud-modal:
   //   const [editing, setEditing] = useState(null);
@@ -88,29 +130,82 @@ export default function App() {
       <header className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
-            Vibecoding Project Tracker
+            VibeFlow
           </h1>
           <p className="text-sm text-slate-500">
             {/* Replace this line with your team name from PRD §11. */}
-            Team starter
+            Vibecoding project workspace
           </p>
+        </div>
+        <div className="text-right text-xs text-slate-500">
+          <p className="font-mono uppercase tracking-wide">M4 data model</p>
+          <p>{tasks.length} tasks tracked</p>
         </div>
       </header>
 
       {/* TODO M11 anchors: render the Anchor Board (Presentation / Demo / Report / Documentation) above the board. */}
 
-      {/*
-        TODO M4 data-model:
-          Render a Kanban board with the four columns from STAGES.
-          Each column should display the tasks whose status matches its id.
-          Pre-populate 3-4 mock tasks so the board isn't empty on first load.
+      <main className="grid gap-4 lg:grid-cols-4">
+        {STAGES.map((stage) => {
+          const stageTasks = tasks.filter((task) => task.status === stage.id);
 
-        TODO M5 crud-modal:
-          Add a "+" button that opens a modal with every Task field.
-          Clicking a card should open the same modal in edit mode.
-      */}
-      <main className="flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400">
-        Build the four-column board here · M4
+          return (
+            <section
+              key={stage.id}
+              className="min-h-[28rem] rounded-xl border border-slate-200 bg-surface-page p-3"
+              aria-labelledby={`${stage.id}-heading`}
+            >
+              <div className="mb-3 flex items-center justify-between px-1">
+                <h2
+                  id={`${stage.id}-heading`}
+                  className="text-sm font-semibold uppercase tracking-wide text-slate-700"
+                >
+                  {stage.label}
+                </h2>
+                <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-500">
+                  {stageTasks.length}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {stageTasks.length > 0 ? (
+                  stageTasks.map((task) => (
+                    <article
+                      key={task.id}
+                      className="rounded-lg border border-slate-200 bg-surface-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <h3 className="text-sm font-semibold leading-5 text-text-primary">
+                          {task.title}
+                        </h3>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                            task.type === 'bug'
+                              ? 'bg-red-50 text-type-bug'
+                              : 'bg-emerald-50 text-type-feature'
+                          }`}
+                        >
+                          {task.type}
+                        </span>
+                      </div>
+                      <p className="mb-4 text-xs leading-5 text-text-muted">
+                        {task.description}
+                      </p>
+                      <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-text-muted">
+                        <span>{task.assignee}</span>
+                        <span>{task.dueDate ? `Due ${task.dueDate}` : 'No due date'}</span>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-300 px-4 py-8 text-center text-xs text-text-muted">
+                    No tasks here yet.
+                  </div>
+                )}
+              </div>
+            </section>
+          );
+        })}
       </main>
     </div>
   );
