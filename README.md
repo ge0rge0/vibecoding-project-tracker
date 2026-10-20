@@ -17,7 +17,7 @@ What you build, starting at M4:
 - The add / edit / delete modal.
 - The Prompt Context field (the differentiator).
 - The "Copy as Prompt Context" button (the demo's hero moment).
-- And everything else through M13.
+- And everything else through M13. 
 
 ## Quick start
 
