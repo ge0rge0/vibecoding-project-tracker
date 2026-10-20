@@ -258,6 +258,30 @@ export default function App() {
     window.setTimeout(() => setHandoffMessage(''), 2500);
   }
 
+  async function copyTaskContext(task) {
+    const briefing = [
+      `# ${task.title}`,
+      `Status: ${STAGES.find((stage) => stage.id === task.status)?.label ?? task.status}`,
+      `Type: ${task.type}`,
+      `Assignee: ${task.assignee}`,
+      '',
+      '## Description',
+      task.description || 'No description provided.',
+      '',
+      '## Prompt context',
+      task.context || 'No prompt context has been recorded yet.',
+      task.contextTool ? `\nAI tool: ${task.contextTool}` : '',
+    ].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(briefing);
+      setHandoffMessage('Copied. Ready to paste into your AI tool.');
+    } catch {
+      setHandoffMessage('Copy failed. Please try again.');
+    }
+    window.setTimeout(() => setHandoffMessage(''), 2500);
+  }
+
   return (
     <div className="min-h-screen p-6">
       <header className="mb-6 flex items-end justify-between">
@@ -346,6 +370,16 @@ export default function App() {
                           <p className="mb-4 text-xs leading-5 text-text-muted">
                             {task.description}
                           </p>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              copyTaskContext(task);
+                            }}
+                            className="mb-4 rounded-md border border-brand-primary/30 px-2.5 py-1.5 text-xs font-medium text-brand-primary transition hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-brand-accent/30"
+                          >
+                            Copy as Prompt Context
+                          </button>
                           <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-text-muted">
                             <label className="flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
                               <span className="sr-only">Hand off {task.title} to</span>
@@ -492,6 +526,15 @@ export default function App() {
                 <button type="button" onClick={deleteTask} className="text-sm font-medium text-type-bug hover:underline">Delete task</button>
               ) : <span />}
               <div className="flex gap-3">
+                {editing !== 'new' && (
+                  <button
+                    type="button"
+                    onClick={() => copyTaskContext({ ...form, id: editing })}
+                    className="rounded-md border border-brand-primary/30 px-4 py-2 text-sm font-medium text-brand-primary hover:bg-violet-50"
+                  >
+                    Copy context
+                  </button>
+                )}
                 <button type="button" onClick={closeModal} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
                 <button type="submit" className="rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-accent">Save task</button>
               </div>
