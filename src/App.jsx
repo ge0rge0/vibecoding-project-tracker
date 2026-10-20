@@ -125,6 +125,34 @@ const EMPTY_TASK = {
   dueDate: '',
 };
 
+function getDueState(task) {
+  if (task.status === 'done') return 'neutral';
+  if (!task.dueDate) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(`${task.dueDate}T00:00:00`);
+  const daysUntilDue = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+
+  if (daysUntilDue < 0) return 'overdue';
+  if (daysUntilDue <= 2) return 'warning';
+  return 'safe';
+}
+
+const DUE_STYLES = {
+  safe: 'bg-due-safe text-emerald-900',
+  warning: 'bg-due-warning text-amber-900',
+  overdue: 'bg-due-overdue text-red-900',
+  neutral: 'bg-due-neutral text-slate-600',
+};
+
+const DUE_LABELS = {
+  safe: 'On track',
+  warning: 'Due soon',
+  overdue: 'Overdue',
+  neutral: 'Complete',
+};
+
 export default function App() {
   const [tasks, setTasks] = useLocalStorage('vibetracker.tasks', SEED_TASKS);
   const [editing, setEditing] = useState(null);
@@ -261,52 +289,64 @@ export default function App() {
               <div className="space-y-3">
                 {stageTasks.length > 0 ? (
                   stageTasks.map((task) => (
-                    <article
-                      key={task.id}
-                      onClick={() => openTask(task)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') openTask(task);
-                      }}
-                      className={`rounded-lg border border-slate-200 border-l-4 bg-surface-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
-                        task.type === 'bug' ? 'border-l-type-bug' : 'border-l-type-feature'
-                      }`}
-                    >
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <h3 className="text-sm font-semibold leading-5 text-text-primary">
-                          {task.title}
-                        </h3>
-                        <span
-                          className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                            task.type === 'bug'
-                              ? 'bg-red-50 text-type-bug'
-                              : 'bg-emerald-50 text-type-feature'
+                    (() => {
+                      const dueState = getDueState(task);
+
+                      return (
+                        <article
+                          key={task.id}
+                          onClick={() => openTask(task)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') openTask(task);
+                          }}
+                          className={`rounded-lg border border-slate-200 border-l-4 bg-surface-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                            task.type === 'bug' ? 'border-l-type-bug' : 'border-l-type-feature'
                           }`}
                         >
-                          <span aria-hidden="true">{task.type === 'bug' ? '⚠' : '✦'}</span>
-                          <span>{task.type}</span>
-                        </span>
-                      </div>
-                      <p className="mb-4 text-xs leading-5 text-text-muted">
-                        {task.description}
-                      </p>
-                      <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-text-muted">
-                        <label className="flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
-                          <span className="sr-only">Hand off {task.title} to</span>
-                          <span aria-hidden="true">Owner</span>
-                          <select
-                            value={task.assignee}
-                            onChange={(event) => handoffTask(task.id, event.target.value)}
-                            onClick={(event) => event.stopPropagation()}
-                            className="max-w-[7rem] rounded border border-slate-200 bg-white px-1.5 py-1 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30"
-                          >
-                            {TEAM.map((member) => <option key={member} value={member}>{member}</option>)}
-                          </select>
-                        </label>
-                        <span>{task.dueDate ? `Due ${task.dueDate}` : 'No due date'}</span>
-                      </div>
-                    </article>
+                          <div className="mb-3 flex items-start justify-between gap-3">
+                            <h3 className="text-sm font-semibold leading-5 text-text-primary">
+                              {task.title}
+                            </h3>
+                            <span
+                              className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                                task.type === 'bug'
+                                  ? 'bg-red-50 text-type-bug'
+                                  : 'bg-emerald-50 text-type-feature'
+                              }`}
+                            >
+                              <span aria-hidden="true">{task.type === 'bug' ? '⚠' : '✦'}</span>
+                              <span>{task.type}</span>
+                            </span>
+                          </div>
+                          <p className="mb-4 text-xs leading-5 text-text-muted">
+                            {task.description}
+                          </p>
+                          <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-text-muted">
+                            <label className="flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
+                              <span className="sr-only">Hand off {task.title} to</span>
+                              <span aria-hidden="true">Owner</span>
+                              <select
+                                value={task.assignee}
+                                onChange={(event) => handoffTask(task.id, event.target.value)}
+                                onClick={(event) => event.stopPropagation()}
+                                className="max-w-[7rem] rounded border border-slate-200 bg-white px-1.5 py-1 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30"
+                              >
+                                {TEAM.map((member) => <option key={member} value={member}>{member}</option>)}
+                              </select>
+                            </label>
+                            {dueState ? (
+                              <span className={`rounded-full px-2 py-1 font-medium ${DUE_STYLES[dueState]}`}>
+                                {task.dueDate ? `Due ${task.dueDate}` : DUE_LABELS[dueState]}
+                              </span>
+                            ) : (
+                              <span>No due date</span>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })()
                   ))
                 ) : (
                   <div className="rounded-lg border border-dashed border-slate-300 px-4 py-8 text-center text-xs text-text-muted">
