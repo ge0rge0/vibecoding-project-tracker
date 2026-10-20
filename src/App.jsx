@@ -116,14 +116,87 @@ export function useLocalStorage(key, initialValue) {
   return [value, setValue];
 }
 
+const EMPTY_TASK = {
+  title: '',
+  description: '',
+  type: 'feature',
+  status: 'todo',
+  assignee: TEAM[0],
+  dueDate: '',
+};
+
 export default function App() {
-  const [tasks] = useLocalStorage('vibetracker.tasks', SEED_TASKS);
+  const [tasks, setTasks] = useLocalStorage('vibetracker.tasks', SEED_TASKS);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(EMPTY_TASK);
   //
   // TODO M5 crud-modal:
   //   const [editing, setEditing] = useState(null);
   //
   // TODO M11 anchors:
   //   const [anchors, setAnchors] = useLocalStorage('vibetracker.anchors', [...]);
+
+  function openNewTask() {
+    setEditing('new');
+    setForm({ ...EMPTY_TASK });
+  }
+
+  function openTask(task) {
+    setEditing(task.id);
+    setForm({
+      title: task.title,
+      description: task.description,
+      type: task.type,
+      status: task.status,
+      assignee: task.assignee,
+      dueDate: task.dueDate ?? '',
+    });
+  }
+
+  function closeModal() {
+    setEditing(null);
+    setForm({ ...EMPTY_TASK });
+  }
+
+  function updateForm(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  function saveTask(event) {
+    event.preventDefault();
+    if (!form.title.trim()) return;
+
+    if (editing === 'new') {
+      setTasks((current) => [
+        ...current,
+        {
+          ...form,
+          id: `task-${Date.now()}`,
+          title: form.title.trim(),
+          dueDate: form.dueDate || null,
+          createdDate: new Date().toISOString().slice(0, 10),
+        },
+      ]);
+    } else {
+      setTasks((current) =>
+        current.map((task) =>
+          task.id === editing
+            ? { ...task, ...form, title: form.title.trim(), dueDate: form.dueDate || null }
+            : task,
+        ),
+      );
+    }
+
+    closeModal();
+  }
+
+  function deleteTask() {
+    if (editing === 'new') return;
+    if (!window.confirm('Delete this task? This cannot be undone.')) return;
+    setTasks((current) => current.filter((task) => task.id !== editing));
+    closeModal();
+  }
 
   return (
     <div className="min-h-screen p-6">
@@ -137,9 +210,18 @@ export default function App() {
             Vibecoding project workspace
           </p>
         </div>
-        <div className="text-right text-xs text-slate-500">
-          <p className="font-mono uppercase tracking-wide">M4 data model</p>
-          <p>{tasks.length} tasks tracked</p>
+        <div className="flex items-center gap-4">
+          <div className="text-right text-xs text-slate-500">
+            <p className="font-mono uppercase tracking-wide">M5 crud modal</p>
+            <p>{tasks.length} tasks tracked</p>
+          </div>
+          <button
+            type="button"
+            onClick={openNewTask}
+            className="rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-2"
+          >
+            + Add task
+          </button>
         </div>
       </header>
 
@@ -172,6 +254,12 @@ export default function App() {
                   stageTasks.map((task) => (
                     <article
                       key={task.id}
+                      onClick={() => openTask(task)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') openTask(task);
+                      }}
                       className="rounded-lg border border-slate-200 bg-surface-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
                       <div className="mb-3 flex items-start justify-between gap-3">
@@ -207,6 +295,85 @@ export default function App() {
           );
         })}
       </main>
+
+      {editing !== null && (
+        <div
+          className="fixed inset-0 z-10 flex items-center justify-center bg-slate-900/50 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeModal();
+          }}
+        >
+          <form
+            onSubmit={saveTask}
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
+            aria-labelledby="task-modal-title"
+          >
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-wide text-brand-primary">Task editor</p>
+                <h2 id="task-modal-title" className="mt-1 text-xl font-semibold text-text-primary">
+                  {editing === 'new' ? 'Add a task' : 'Edit task'}
+                </h2>
+              </div>
+              <button type="button" onClick={closeModal} className="text-2xl leading-none text-slate-400 hover:text-slate-700" aria-label="Close task editor">
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-slate-700">
+                Title
+                <input name="title" value={form.title} onChange={updateForm} required autoFocus className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30" />
+              </label>
+
+              <label className="block text-sm font-medium text-slate-700">
+                Description
+                <textarea name="description" value={form.description} onChange={updateForm} rows="3" className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30" />
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-slate-700">
+                  Type
+                  <select name="type" value={form.type} onChange={updateForm} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    <option value="feature">Feature</option>
+                    <option value="bug">Bug</option>
+                  </select>
+                </label>
+
+                <label className="block text-sm font-medium text-slate-700">
+                  Status
+                  <select name="status" value={form.status} onChange={updateForm} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    {STAGES.map((stage) => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
+                  </select>
+                </label>
+
+                <label className="block text-sm font-medium text-slate-700">
+                  Assignee
+                  <select name="assignee" value={form.assignee} onChange={updateForm} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+                    {TEAM.map((member) => <option key={member} value={member}>{member}</option>)}
+                  </select>
+                </label>
+
+                <label className="block text-sm font-medium text-slate-700">
+                  Due date
+                  <input type="date" name="dueDate" value={form.dueDate} onChange={updateForm} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+              {editing !== 'new' ? (
+                <button type="button" onClick={deleteTask} className="text-sm font-medium text-type-bug hover:underline">Delete task</button>
+              ) : <span />}
+              <div className="flex gap-3">
+                <button type="button" onClick={closeModal} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                <button type="submit" className="rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-accent">Save task</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
