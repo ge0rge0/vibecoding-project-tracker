@@ -129,6 +129,7 @@ export default function App() {
   const [tasks, setTasks] = useLocalStorage('vibetracker.tasks', SEED_TASKS);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_TASK);
+  const [handoffMessage, setHandoffMessage] = useState('');
   //
   // TODO M5 crud-modal:
   //   const [editing, setEditing] = useState(null);
@@ -196,6 +197,14 @@ export default function App() {
     if (!window.confirm('Delete this task? This cannot be undone.')) return;
     setTasks((current) => current.filter((task) => task.id !== editing));
     closeModal();
+  }
+
+  function handoffTask(taskId, assignee) {
+    setTasks((current) =>
+      current.map((task) => (task.id === taskId ? { ...task, assignee } : task)),
+    );
+    setHandoffMessage(`Task handed off to ${assignee}.`);
+    window.setTimeout(() => setHandoffMessage(''), 2500);
   }
 
   return (
@@ -283,7 +292,18 @@ export default function App() {
                         {task.description}
                       </p>
                       <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-text-muted">
-                        <span>{task.assignee}</span>
+                        <label className="flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
+                          <span className="sr-only">Hand off {task.title} to</span>
+                          <span aria-hidden="true">Owner</span>
+                          <select
+                            value={task.assignee}
+                            onChange={(event) => handoffTask(task.id, event.target.value)}
+                            onClick={(event) => event.stopPropagation()}
+                            className="max-w-[7rem] rounded border border-slate-200 bg-white px-1.5 py-1 text-xs font-medium text-slate-700 outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30"
+                          >
+                            {TEAM.map((member) => <option key={member} value={member}>{member}</option>)}
+                          </select>
+                        </label>
                         <span>{task.dueDate ? `Due ${task.dueDate}` : 'No due date'}</span>
                       </div>
                     </article>
@@ -298,6 +318,15 @@ export default function App() {
           );
         })}
       </main>
+
+      {handoffMessage && (
+        <div
+          className="fixed bottom-5 left-1/2 z-20 -translate-x-1/2 rounded-md bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-lg"
+          role="status"
+        >
+          {handoffMessage}
+        </div>
+      )}
 
       {editing !== null && (
         <div
