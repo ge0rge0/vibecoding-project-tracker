@@ -164,6 +164,39 @@ The hackathon is "done" when all 13 milestone tags are pushed to your repo and v
 - The "Copy as Prompt Context" demo works on stage.
 - 5 min pitch is rehearsed.
 
+## 14. Functional requirements
+
+| ID | Requirement | MVP | Related milestone |
+|---|---|---|---|
+| FR01 | The user shall be able to view tasks organised into To Do, In Progress, Review, and Done columns. | Yes | M4 |
+| FR02 | The user shall be able to create a task with a title, description, type, status, assignee, and due date. | Yes | M5 |
+| FR03 | The user shall be able to edit the details of an existing task. | Yes | M5 |
+| FR04 | The user shall be able to delete an existing task after confirming the action. | Yes | M5 |
+| FR05 | The system shall save task changes to local storage and restore them when the application reloads. | Yes | M4/M5 |
+| FR06 | The user shall be able to identify whether a task is a feature or a bug. | Yes | M6 |
+| FR07 | The user shall be able to assign a task to one of the project team members. | Yes | M7 |
+| FR08 | The user shall be able to hand a task over to another team member. | Yes | M7 |
+| FR09 | The system shall show a visual due-date state for safe, upcoming, overdue, and completed tasks. | Yes | M8 |
+| FR10 | The user shall be able to record prompt context and the AI tool used for a task. | Yes | M9 |
+| FR11 | The user shall be able to copy a formatted task and prompt-context summary to the clipboard. | Yes | M10 |
+| FR12 | The user shall be able to add and update links for the Presentation, Demo, Report, and Documentation deliverables. | Yes | M11 |
+| FR13 | The user shall be able to use one additional project-specific interaction that differentiates VibeFlow from a standard Kanban board. | No | M12 |
+
+## 15. Non-functional requirements
+
+| ID | Requirement | MVP | Rationale |
+|---|---|---|---|
+| NFR01 | The interface shall use consistent labels, colours, spacing, and interaction patterns across all screens. | Yes | Consistency helps users understand the board quickly. |
+| NFR02 | A new user shall be able to understand the main purpose of the board without formal training. | Yes | The tool is intended for quick use during active development. |
+| NFR03 | The application shall provide visible feedback after important actions such as saving, deleting, copying, or handing off a task. | Yes | Feedback confirms that the user's action succeeded. |
+| NFR04 | The application shall remain usable on a standard desktop or laptop screen. | Yes | Desktop use is the defined scope of the hackathon. |
+| NFR05 | Text and controls shall have sufficient contrast and readable sizing. | Yes | This supports clear reading and basic accessibility. |
+| NFR06 | The application shall load the saved board without requiring authentication or a backend account. | Yes | The hackathon uses local storage and excludes authentication. |
+| NFR07 | Common actions shall require a small number of steps and shall use familiar controls such as buttons, forms, and dropdowns. | Yes | This reduces friction while developers are working quickly. |
+| NFR08 | The application shall not lose saved task data when the user refreshes the browser during normal use. | Yes | Persistence is essential to the tracker workflow. |
+| NFR09 | The application shall avoid unnecessary animation, decoration, and visual clutter. | Yes | A focused interface keeps attention on project work. |
+| NFR10 | The application shall remain responsive during normal use with the expected hackathon dataset. | No | The prototype should feel immediate without requiring a complex backend. |
+
 ---
 
 *PRD version: hackathon-starter v1 · maintained by Prof. Dr. Ignacio Alvarez*
