@@ -260,20 +260,23 @@ export default function App() {
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') openTask(task);
                       }}
-                      className="rounded-lg border border-slate-200 bg-surface-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      className={`rounded-lg border border-slate-200 border-l-4 bg-surface-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                        task.type === 'bug' ? 'border-l-type-bug' : 'border-l-type-feature'
+                      }`}
                     >
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <h3 className="text-sm font-semibold leading-5 text-text-primary">
                           {task.title}
                         </h3>
                         <span
-                          className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                          className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
                             task.type === 'bug'
                               ? 'bg-red-50 text-type-bug'
                               : 'bg-emerald-50 text-type-feature'
                           }`}
                         >
-                          {task.type}
+                          <span aria-hidden="true">{task.type === 'bug' ? '⚠' : '✦'}</span>
+                          <span>{task.type}</span>
                         </span>
                       </div>
                       <p className="mb-4 text-xs leading-5 text-text-muted">
