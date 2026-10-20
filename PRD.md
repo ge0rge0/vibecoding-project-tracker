@@ -145,7 +145,7 @@ Fill in:
 
 - **Team name:** `VibeFlow`
 - **Tagline (one sentence):** `Keep every task and prompt moving forward.`
-- **Tracker URL after deploy:** `To be added after Vercel deployment.`
+- **Tracker URL after deploy:** `https://vibecoding-project-tracker-snowy.vercel.app/`
 
 ## 12. Out of scope (do not build)
 
