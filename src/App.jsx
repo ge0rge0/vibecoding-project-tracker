@@ -152,6 +152,34 @@ function getDueState(task) {
   return 'safe';
 }
 
+function getTaskHealth(task) {
+  const checks = [
+    Boolean(task.title?.trim()),
+    Boolean(task.description?.trim()),
+    Boolean(task.assignee),
+    Boolean(task.dueDate),
+    Boolean(task.context?.trim()),
+  ];
+  const score = checks.filter(Boolean).length;
+
+  return {
+    score,
+    label: score >= 4 ? 'Healthy' : score >= 2 ? 'Needs detail' : 'At risk',
+    style: score >= 4 ? 'bg-due-safe text-emerald-900' : score >= 2 ? 'bg-due-warning text-amber-900' : 'bg-due-overdue text-red-900',
+  };
+}
+
+function getNextBestTask(tasks) {
+  return tasks
+    .filter((task) => task.status !== 'done')
+    .sort((first, second) => {
+      if (first.stuck !== second.stuck) return first.stuck ? -1 : 1;
+      const firstDue = first.dueDate ? new Date(`${first.dueDate}T00:00:00`).getTime() : Infinity;
+      const secondDue = second.dueDate ? new Date(`${second.dueDate}T00:00:00`).getTime() : Infinity;
+      return firstDue - secondDue;
+    })[0] ?? null;
+}
+
 const DUE_STYLES = {
   safe: 'bg-due-safe text-emerald-900',
   warning: 'bg-due-warning text-amber-900',
@@ -222,6 +250,8 @@ export default function App() {
           context: form.context.trim(),
           contextTool: form.contextTool || null,
           contextUpdatedAt: form.context.trim() ? new Date().toISOString() : null,
+          stuck: false,
+          activity: [{ id: `activity-${Date.now()}`, message: 'Task created.', createdAt: new Date().toISOString() }],
         },
       ]);
     } else {
@@ -239,6 +269,15 @@ export default function App() {
                   task.context !== form.context.trim()
                     ? (form.context.trim() ? new Date().toISOString() : null)
                     : task.contextUpdatedAt,
+                activity: [
+                  ...(task.activity ?? []),
+                  ...(task.status !== form.status
+                    ? [{ id: `activity-${Date.now()}-status`, message: `Moved to ${STAGES.find((stage) => stage.id === form.status)?.label ?? form.status}.`, createdAt: new Date().toISOString() }]
+                    : []),
+                  ...(task.context !== form.context.trim()
+                    ? [{ id: `activity-${Date.now()}-context`, message: 'Prompt context updated.', createdAt: new Date().toISOString() }]
+                    : []),
+                ],
               }
             : task,
         ),
@@ -257,9 +296,39 @@ export default function App() {
 
   function handoffTask(taskId, assignee) {
     setTasks((current) =>
-      current.map((task) => (task.id === taskId ? { ...task, assignee } : task)),
+      current.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              assignee,
+              activity: [
+                ...(task.activity ?? []),
+                { id: `activity-${Date.now()}`, message: `Handed off to ${assignee}.`, createdAt: new Date().toISOString() },
+              ],
+            }
+          : task,
+      ),
     );
     setHandoffMessage(`Task handed off to ${assignee}.`);
+    window.setTimeout(() => setHandoffMessage(''), 2500);
+  }
+
+  function toggleStuck(taskId) {
+    setTasks((current) =>
+      current.map((task) => {
+        if (task.id !== taskId) return task;
+        const stuck = !task.stuck;
+        return {
+          ...task,
+          stuck,
+          activity: [
+            ...(task.activity ?? []),
+            { id: `activity-${Date.now()}`, message: stuck ? 'Marked as stuck and needs attention.' : 'Marked as moving again.', createdAt: new Date().toISOString() },
+          ],
+        };
+      }),
+    );
+    setHandoffMessage('Task guidance updated.');
     window.setTimeout(() => setHandoffMessage(''), 2500);
   }
 
@@ -293,6 +362,12 @@ export default function App() {
     );
   }
 
+  const nextBestTask = getNextBestTask(tasks);
+  const recentActivity = tasks
+    .flatMap((task) => (task.activity ?? [{ id: `${task.id}-created`, message: 'Task added to the board.', createdAt: task.createdDate }]).map((event) => ({ ...event, taskTitle: task.title })))
+    .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))
+    .slice(0, 6);
+
   return (
     <div className="min-h-screen p-6">
       <header className="mb-6 flex items-end justify-between">
@@ -305,9 +380,9 @@ export default function App() {
             Vibecoding project workspace
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="text-right text-xs text-slate-500">
-            <p className="font-mono uppercase tracking-wide">M5 crud modal</p>
+            <p className="font-mono uppercase tracking-wide">M12 secret sauce</p>
             <p>{tasks.length} tasks tracked</p>
           </div>
           <button
@@ -355,6 +430,54 @@ export default function App() {
         </div>
       </section>
 
+      <section className="mb-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-xl border border-violet-100 bg-violet-50/50 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-wide text-brand-primary">VibeFlow guidance</p>
+              <h2 className="mt-1 text-lg font-semibold text-text-primary">Next best task</h2>
+            </div>
+            <span className="rounded-full bg-white px-2 py-1 text-xs font-medium text-brand-primary">M12</span>
+          </div>
+          {nextBestTask ? (
+            <div className="mt-4 flex items-center justify-between gap-4 rounded-lg border border-violet-100 bg-white p-4">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-text-primary">{nextBestTask.title}</p>
+                <p className="mt-1 text-xs text-text-muted">
+                  {nextBestTask.stuck ? 'This task is stuck and needs attention.' : 'Prioritised by status and due date.'}
+                </p>
+              </div>
+              <button type="button" onClick={() => openTask(nextBestTask)} className="shrink-0 rounded-md bg-brand-primary px-3 py-2 text-xs font-semibold text-white hover:bg-brand-accent">
+                Open task
+              </button>
+            </div>
+          ) : (
+            <p className="mt-4 rounded-lg bg-white p-4 text-sm text-text-muted">All tasks are complete.</p>
+          )}
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-surface-card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-text-primary">Activity timeline</h2>
+            <span className="text-xs text-text-muted">Latest updates</span>
+          </div>
+          {recentActivity.length > 0 ? (
+            <ol className="space-y-3">
+              {recentActivity.map((event) => (
+                <li key={event.id} className="flex gap-3 text-xs">
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-accent" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-slate-700">{event.message}</p>
+                    <p className="mt-0.5 truncate text-text-muted">{event.taskTitle}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-sm text-text-muted">Task activity will appear here.</p>
+          )}
+        </div>
+      </section>
+
       <main className="grid gap-4 lg:grid-cols-4">
         {STAGES.map((stage) => {
           const stageTasks = tasks.filter((task) => task.status === stage.id);
@@ -382,6 +505,7 @@ export default function App() {
                   stageTasks.map((task) => (
                     (() => {
                       const dueState = getDueState(task);
+                      const health = getTaskHealth(task);
 
                       return (
                         <article
@@ -411,19 +535,39 @@ export default function App() {
                               <span>{task.type}</span>
                             </span>
                           </div>
+                          <div className="mb-3 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide">
+                            <span className={`rounded-full px-2 py-1 ${health.style}`}>Health {health.score}/5</span>
+                            {task.stuck && <span className="rounded-full bg-red-50 px-2 py-1 text-type-bug">Stuck</span>}
+                          </div>
                           <p className="mb-4 text-xs leading-5 text-text-muted">
                             {task.description}
                           </p>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              copyTaskContext(task);
-                            }}
-                            className="mb-4 rounded-md border border-brand-primary/30 px-2.5 py-1.5 text-xs font-medium text-brand-primary transition hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-brand-accent/30"
-                          >
-                            Copy as Prompt Context
-                          </button>
+                          <div className="mb-4 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                copyTaskContext(task);
+                              }}
+                              className="rounded-md border border-brand-primary/30 px-2.5 py-1.5 text-xs font-medium text-brand-primary transition hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-brand-accent/30"
+                            >
+                              Copy as Prompt Context
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                toggleStuck(task.id);
+                              }}
+                              className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-brand-accent/30 ${
+                                task.stuck
+                                  ? 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                                  : 'border-red-200 text-type-bug hover:bg-red-50'
+                              }`}
+                            >
+                              {task.stuck ? 'Moving again' : "I'm stuck"}
+                            </button>
+                          </div>
                           <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-text-muted">
                             <label className="flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
                               <span className="sr-only">Hand off {task.title} to</span>
