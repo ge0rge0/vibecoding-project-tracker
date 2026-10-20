@@ -1,4 +1,4 @@
-# Vibecoding Project Tracker — Hackathon Starter 
+# Vibecoding Project Tracker — Hackathon Starter  
 
 You're forking this repo as the starting point for the **UXD Vibecoding Hackathon 2026**. The goal of the hackathon is to ship a Vibecoding Project Tracker in ~3 hours: a Kanban-style tool that tracks your vibecoding tasks and stores the prompts that produced them.
 
@@ -101,3 +101,5 @@ Once M9 (`context`) is done, keep the Context field of each real task up to date
 ---
 
 *UXD Vibecoding Hackathon 2026 · Prof. Dr. Ignacio Alvarez*
+
+Repository connection verified for the hackathon portal milestone workflow.
