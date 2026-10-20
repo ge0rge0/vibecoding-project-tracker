@@ -92,6 +92,13 @@ const SEED_TASKS = [
   },
 ];
 
+const ANCHOR_SEED = [
+  { id: 'presentation', label: 'Presentation', url: '' },
+  { id: 'demo', label: 'Demo', url: '' },
+  { id: 'report', label: 'Report', url: '' },
+  { id: 'documentation', label: 'Documentation', url: '' },
+];
+
 /**
  * A tiny localStorage hook — survives reloads, no library needed.
  *
@@ -161,6 +168,7 @@ const DUE_LABELS = {
 
 export default function App() {
   const [tasks, setTasks] = useLocalStorage('vibetracker.tasks', SEED_TASKS);
+  const [anchors, setAnchors] = useLocalStorage('vibetracker.anchors', ANCHOR_SEED);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_TASK);
   const [handoffMessage, setHandoffMessage] = useState('');
@@ -168,9 +176,6 @@ export default function App() {
   // TODO M5 crud-modal:
   //   const [editing, setEditing] = useState(null);
   //
-  // TODO M11 anchors:
-  //   const [anchors, setAnchors] = useLocalStorage('vibetracker.anchors', [...]);
-
   function openNewTask() {
     setEditing('new');
     setForm({ ...EMPTY_TASK });
@@ -282,6 +287,12 @@ export default function App() {
     window.setTimeout(() => setHandoffMessage(''), 2500);
   }
 
+  function updateAnchor(anchorId, url) {
+    setAnchors((current) =>
+      current.map((anchor) => (anchor.id === anchorId ? { ...anchor, url } : anchor)),
+    );
+  }
+
   return (
     <div className="min-h-screen p-6">
       <header className="mb-6 flex items-end justify-between">
@@ -309,7 +320,40 @@ export default function App() {
         </div>
       </header>
 
-      {/* TODO M11 anchors: render the Anchor Board (Presentation / Demo / Report / Documentation) above the board. */}
+      <section className="mb-6" aria-labelledby="deliverables-heading">
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-wide text-brand-primary">Project deliverables</p>
+            <h2 id="deliverables-heading" className="mt-1 text-lg font-semibold text-text-primary">Anchor board</h2>
+          </div>
+          <p className="text-xs text-text-muted">Keep the final links in one place.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {anchors.map((anchor) => {
+            const hasUrl = Boolean(anchor.url?.trim());
+
+            return (
+              <label key={anchor.id} className="rounded-lg border border-slate-200 bg-surface-card p-4 shadow-sm">
+                <span className="mb-3 flex items-center justify-between text-sm font-semibold text-text-primary">
+                  {anchor.label}
+                  <span className={`flex items-center gap-1.5 text-xs font-medium ${hasUrl ? 'text-emerald-700' : 'text-text-muted'}`}>
+                    <span className={`h-2 w-2 rounded-full ${hasUrl ? 'bg-type-feature' : 'bg-slate-300'}`} aria-hidden="true" />
+                    {hasUrl ? 'Linked' : 'Empty'}
+                  </span>
+                </span>
+                <span className="sr-only">{anchor.label} URL</span>
+                <input
+                  type="url"
+                  value={anchor.url ?? ''}
+                  onChange={(event) => updateAnchor(anchor.id, event.target.value)}
+                  placeholder="Paste URL"
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30"
+                />
+              </label>
+            );
+          })}
+        </div>
+      </section>
 
       <main className="grid gap-4 lg:grid-cols-4">
         {STAGES.map((stage) => {
